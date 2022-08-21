@@ -1,6 +1,7 @@
 import os
 
-from flask import Flask
+from flask import Flask, request
+from werkzeug.exceptions import BadRequest
 
 app = Flask(__name__)
 
@@ -34,7 +35,22 @@ def build_query(it, query):
 
 @app.post("/perform_query")
 def perform_query():
-    # нужно взять код из предыдущего ДЗ
-    # добавить команду regex
-    # добавить типизацию в проект, чтобы проходила утилиту mypy app.py
-    return app.response_class('', content_type="text/plain")
+    try:
+        query = request.args['query']
+        file_name = request.args['file_name']
+    except KeyError:
+        raise BadRequest
+
+    file_path = os.path.join(DATA_DIR, file_name)
+    if not os.path.exists(file_path):
+        return BadRequest(description=f"{file_name} was not found")
+
+    with open(file_path) as fd:
+        res = build_query(fd, query)
+        content = '\n'.join(res)
+        print(content)
+    return app.response_class(content, content_type="text/plain")
+
+
+if __name__ == '__main__':
+    app(run)
