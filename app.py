@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
 
 app = Flask(__name__)
@@ -9,48 +9,51 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 
-def build_query(it, query):
-    query_items = query.split('|')
-    res = map(lambda v: v.strip(), it)
-    for item in query_items:
-        split_item = item.split(':')
-        cmd = split_item[0]
-        if cmd == 'filter':
-            arg = split_item[1]
-            res = filter(lambda v, txt=arg: txt in v, res)
-        if cmd == 'map':
-            arg = split_item[1]
-            res = map(lambda v, idx=arg: v.split(" ")[idx], res)
-        if cmd == 'unique':
-            res = set(res)
-        if cmd == 'sort':
-            arg = split_item[1]
-            reverse = arg == 'desc'
-            res = sorted(res, reverse=reverse)
-        if cmd == 'limit':
-            arg = int(split_item[1])
-            res = list(res)[:arg]
+def do_cmd(cmd, value, data):
+    if cmd == 'filter':
+        result = list(filter(lambda record: value in record, data))
+    elif cmd == 'map':
+        col_num = int(value)
+        result = list(map(lambda record: record.split()[col_num], data))
+    elif cmd == 'unique':
+        result = list(set(data))
+    elif cmd == 'sort':
+        reverse = (value == 'desc')
+        result = sorted(data, reverse=reverse)
+    elif cmd == 'limit':
+        result = data[:int(value)]
+    else:
+        raise BadRequest
+    return result
+
+
+def do_query(params):
+    with open(os.path.join(DATA_DIR, params["file_name"])) as f:
+        file_data = f.readlines()
+    res = file_data
+    if 'cmd1' in params.keys():
+        res = do_cmd(params['cmd1'], params['value1'], res)
+    if 'cmd2' in params.keys():
+        res = do_cmd(params['cmd2'], params['value2'], res)
+    if 'cmd3' in params.keys():
+        res = do_cmd(params['cmd3'], params['value3'], res)
     return res
 
 
-@app.post("/perform_query")
+@app.route("/perform_query", methods=['POST'])
 def perform_query():
-    try:
-        query = request.args['query']
-        file_name = request.args['file_name']
-    except KeyError:
+    # получить параметры query и file_name из request.args, при ошибке вернуть ошибку 400
+    # проверить, что файла file_name существует в папке DATA_DIR, при ошибке вернуть ошибку 400
+    # с помощью функционального программирования (функций filter, map), итераторов/генераторов сконструировать запрос
+    # вернуть пользователю сформированный результат
+
+    data = request.json
+    file_name = data['file_name']
+    if not os.path.exists(os.path.join(DATA_DIR, file_name)):
         raise BadRequest
 
-    file_path = os.path.join(DATA_DIR, file_name)
-    if not os.path.exists(file_path):
-        return BadRequest(description=f"{file_name} was not found")
-
-    with open(file_path) as fd:
-        res = build_query(fd, query)
-        content = '\n'.join(res)
-        print(content)
-    return app.response_class(content, content_type="text/plain")
+    return jsonify(do_query(data))
 
 
 if __name__ == '__main__':
-    app(run)
+    app.run()
