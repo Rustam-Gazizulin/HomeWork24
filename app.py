@@ -1,4 +1,5 @@
 import os
+import re
 
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
@@ -22,6 +23,9 @@ def do_cmd(cmd, value, data):
         result = sorted(data, reverse=reverse)
     elif cmd == 'limit':
         result = data[:int(value)]
+    elif cmd == 'regex':
+        regex = re.compile(value)
+        result = filter(lambda v: regex.search(v), data)
     else:
         raise BadRequest
     return result

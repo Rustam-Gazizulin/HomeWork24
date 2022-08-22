@@ -3,11 +3,8 @@ Content-Type: application/json
 
 {
   "file_name": "apache_logs.txt",
-  "cmd1": "map",
-  "value1": "0",
-  "cmd2": "filter",
-  "value2": "100.43.83.137",
-  "cmd3": "limit",
-  "value3": "5"
-
+  "cmd1": "filter",
+  "value1": "67.214.178.190",
+  "cmd2": "limit",
+  "value2": 1
 }
