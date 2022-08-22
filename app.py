@@ -1,5 +1,6 @@
 import os
 import re
+from typing import List, Optional, Any
 
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
@@ -10,7 +11,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 
-def do_cmd(cmd, value, data):
+def do_cmd(cmd: str, value: str, data: List[str]) -> List:
     if cmd == 'filter':
         result = list(filter(lambda record: value in record, data))
     elif cmd == 'map':
@@ -25,13 +26,13 @@ def do_cmd(cmd, value, data):
         result = data[:int(value)]
     elif cmd == 'regex':
         regex = re.compile(value)
-        result = filter(lambda v: regex.search(v), data)
+        result = list(filter(lambda v: regex.search(v), data))
     else:
         raise BadRequest
     return result
 
 
-def do_query(params):
+def do_query(params: dict) -> list:
     with open(os.path.join(DATA_DIR, params["file_name"])) as f:
         file_data = f.readlines()
     res = file_data
@@ -46,13 +47,8 @@ def do_query(params):
 
 @app.route("/perform_query", methods=['POST'])
 def perform_query():
-    # получить параметры query и file_name из request.args, при ошибке вернуть ошибку 400
-    # проверить, что файла file_name существует в папке DATA_DIR, при ошибке вернуть ошибку 400
-    # с помощью функционального программирования (функций filter, map), итераторов/генераторов сконструировать запрос
-    # вернуть пользователю сформированный результат
-
-    data = request.json
-    file_name = data['file_name']
+    data: dict = request.json
+    file_name: str = data['file_name']
     if not os.path.exists(os.path.join(DATA_DIR, file_name)):
         raise BadRequest
 
